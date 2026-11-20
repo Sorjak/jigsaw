@@ -20,7 +20,7 @@ jobs:
 
   build-and-push:
     needs: prep
-    uses: ${{ needs.prep.outputs.owner }}/gh-actions/.github/workflows/build-and-push.yml@main
+    uses: sorjak/gh-actions/.github/workflows/build-and-push.yml@main
     secrets: inherit
     with:
       tag_name: ${{ github.sha }}
@@ -29,7 +29,7 @@ jobs:
 
   update-argocd-repo:
     needs: [prep, build-and-push]
-    uses: ${{ needs.prep.outputs.owner }}/gh-actions/.github/workflows/update-argocd-repo.yml@main
+    uses: sorjak/gh-actions/.github/workflows/update-argocd-repo.yml@main
     secrets: inherit
     with:
       tag_name: ${{ github.sha }}
