@@ -1,0 +1,8 @@
+name: jigsaw
+service:
+  port: 80
+  targetPort: 80
+  type: NodePort
+  host: jigsaw.sorjak.com
+  image: ghcr.io/sorjak/jigsaw
+  tag: a3394a16ab94d649927ab0b0b1b4aedb0636893e

@@ -1,0 +1,36 @@
+name: Build and Push Docker Image to GHCR
+
+on:
+  push:
+    branches:
+      - main # Triggers the workflow on pushes to the main branch
+
+jobs:
+  prep:
+    runs-on: ubuntu-latest
+    outputs:
+      repo: ${{ steps.prep.outputs.repo }}
+      owner: ${{ steps.prep.outputs.owner }}
+    steps:
+    - name: Convert owner and repository to lowercase
+      id: prep
+      run: |
+        echo "repo=${GITHUB_REPOSITORY#*/}" >> $GITHUB_OUTPUT
+        echo "owner=${GITHUB_REPOSITORY_OWNER@L}" >> $GITHUB_OUTPUT
+
+  build-and-push:
+    needs: prep
+    uses: ${{ github.repository_owner }}/gh-actions/.github/workflows/build-and-push.yml@main
+    secrets: inherit
+    with:
+      tag_name: ${{ github.sha }}
+      repo_owner: ${{ needs.prep.outputs.owner }}
+      repo_name: ${{ needs.prep.outputs.repo }}
+
+  update-argocd-repo:
+    needs: [prep, build-and-push]
+    uses: ${{ github.repository_owner }}/gh-actions/.github/workflows/update-argocd-repo.yml@main
+    secrets: inherit
+    with:
+      tag_name: ${{ github.sha }}
+      repo_name: ${{ needs.prep.outputs.repo }}
