@@ -1,7 +1,7 @@
-import SHAPES from './shapes.js';
+import SHAPES from "./shapes.js";
 
 class Shape {
-  constructor(name, color='red') {
+  constructor(name, color = "red") {
     this.name = name;
     this.grid = SHAPES[name];
     this.id = null;
@@ -9,13 +9,12 @@ class Shape {
     this.color = color;
   }
 
-  get width()  {
+  get width() {
     return this.grid[0].length;
   }
 
   get height() {
     return this.grid.length;
   }
-
 }
 export default Shape;

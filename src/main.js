@@ -1,22 +1,23 @@
-import '@pixi/layout';
-import { Application, Assets, Container, Graphics, Rectangle, Text } from "pixi.js";
+import "@pixi/layout";
+import { Application, Container } from "pixi.js";
 
-import Grid from './grid.js';
-import Shape from './shape.js';
-import FakeShape from './fake_shape.js';
-import SHAPES from './shapes.js';
-import Tile from './tile.js';
+import Grid from "./grid.js";
+import Shape from "./shape.js";
+import FakeShape from "./fake_shape.js";
+import SHAPES from "./shapes.js";
+import Tile from "./tile.js";
 
-const TILE_COLORS = ['red', 'blue', 'yellow', 'cyan', 'green'];
+const TILE_COLORS = ["red", "blue", "yellow", "cyan", "green"];
 const START_SHAPE_GROUPS = 3;
 const START_SHAPE_NUM_PER_GROUP = 3;
 const FAKE_SHAPE_NUM_PER_GROUP = 2;
-const HEART = '❤️';
+const OUTSIDE_SHAPE_BUFFER = 1; // tiles between outside shapes, fakes and twins
+const HEART = "❤️";
 const GAME_OVER_DURATION_MS = 2000;
 const LOOP_RETRIES = 15;
 
 function getRandomColor() {
-  const clrIdx = getRandomInt(0, TILE_COLORS.length)
+  const clrIdx = getRandomInt(0, TILE_COLORS.length);
   return TILE_COLORS[clrIdx];
 }
 
@@ -32,14 +33,14 @@ function getRandomColorWheel(numColors) {
 }
 
 function getRandomShape(color, usedNames) {
-  const shapeNames = Object.keys(SHAPES).filter(s => !usedNames.has(s));
+  const shapeNames = Object.keys(SHAPES).filter((s) => !usedNames.has(s));
   if (shapeNames.length === 0) {
-    console.error('Ran out of possible shapes to add!!!!');
+    console.error("Ran out of possible shapes to add!!!!");
     return null;
   }
 
   const randomInt = getRandomInt(0, shapeNames.length);
-  
+
   color = color ?? getRandomColor();
   return new Shape(shapeNames[randomInt], color);
 }
@@ -57,46 +58,21 @@ function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
 }
 
-function getRandomInPlayTile(grid) {
-  const candidates = grid.getStartTiles();
-  const idx = getRandomInt(0, candidates.length);
-  return candidates[idx];
-}
-
 function getRandomOutsideTile(grid) {
   let dir = getRandomInt(0, 10);
 
-  let hmin = 0; let hmax = grid.playArea.left;
-  let vmin = 0; let vmax = grid.height;
+  let hmin = 0;
+  let hmax = grid.playArea.left;
+  let vmin = 0;
+  let vmax = grid.height;
   if (dir >= 5) {
-    hmin = grid.playArea.right + 1; hmax = grid.width;
+    hmin = grid.playArea.right + 1;
+    hmax = grid.width;
   }
 
   let x = getRandomInt(hmin, hmax);
   let y = getRandomInt(vmin, vmax);
   return grid.getTile(x, y);
-}
-
-function getNearbyTile(grid, shapeObj) {
-  const shapeTiles = grid.getTilesInShape(shapeObj);
-  let nearbyTile = null;
-
-  const maxTries = LOOP_RETRIES;
-  let tries = 0;
-  while (maxTries >= tries) {
-    const ran = getRandomInt(0, shapeTiles.length);
-    const startTile = shapeTiles[ran];
-    const neighbors = grid.getEmptyNeighborTiles(startTile);
-    if (neighbors.length > 0) {
-      const ranNeighbor = getRandomInt(0, neighbors.length);
-      nearbyTile = neighbors[ranNeighbor]; 
-      break;
-    }
-
-    tries++;
-  }
-
-  return nearbyTile;
 }
 
 function addStartingShapes(grid, groupColor, usedNames, previousGroups) {
@@ -106,7 +82,7 @@ function addStartingShapes(grid, groupColor, usedNames, previousGroups) {
 
   while (shapesAdded.length < START_SHAPE_NUM_PER_GROUP) {
     if (tries >= maxTries) {
-      console.warn('Exceeded max tries on starting shapes.')
+      console.warn("Exceeded max tries on starting shapes.");
       break;
     }
 
@@ -130,10 +106,10 @@ function addStartingShapes(grid, groupColor, usedNames, previousGroups) {
     }
 
     const tile = candidates[getRandomInt(0, candidates.length)];
-    if (tile == null) { 
-      console.warn(`No nearby tile found`); 
+    if (tile == null) {
+      console.warn(`No nearby tile found`);
       tries++;
-      continue; 
+      continue;
     }
 
     const randomShape = getRandomShape(groupColor, usedNames);
@@ -160,14 +136,29 @@ function addStartingShapes(grid, groupColor, usedNames, previousGroups) {
   return shapesAdded;
 }
 
+function addTwinShapes(grid, shapes) {
+  const shapesToAdd = [];
+  for (const shape of shapes) {
+    const shapeObj = new Shape(shape.name, shape.color);
+    shapeObj.twin_id = shape.id;
+    shapesToAdd.push(shapeObj);
+  }
+
+  for (const shape of shapesToAdd) {
+    let tries = 0;
+    while (tries < LOOP_RETRIES) {
+      const tile = getRandomOutsideTile(grid);
+      const shapeTiles = grid.getTilesForShape(tile.x, tile.y, shape, false);
+
+      let result = grid.addShapeSafe(shape, shapeTiles, OUTSIDE_SHAPE_BUFFER);
+      if (result) break;
+      tries++;
+    }
+  }
+}
+
 function addFakeShapes(grid, startingShapes, groupColor, usedNames) {
   const shapesToAdd = [];
-
-  for (const startingShape of startingShapes) {
-    const shape = new Shape(startingShape.name, startingShape.color);
-    shape.twin_id = startingShape.id;
-    shapesToAdd.push(shape);
-  }
 
   for (let i = 0; i < FAKE_SHAPE_NUM_PER_GROUP; i++) {
     let fakeShape = getRandomFakeShape(groupColor, usedNames);
@@ -179,19 +170,18 @@ function addFakeShapes(grid, startingShapes, groupColor, usedNames) {
     usedNames.add(fakeShape.name);
   }
 
-  const maxTries = LOOP_RETRIES;
-  
+  const maxTries = LOOP_RETRIES * 2;
+
   for (const shape of shapesToAdd) {
-    let added = false;
     let tries = 0;
-    while(tries < maxTries) {
+    while (tries < maxTries) {
       const tile = getRandomOutsideTile(grid);
       const shapeTiles = grid.getTilesForShape(tile.x, tile.y, shape, false);
 
-      let result = grid.addShapeSafe(shape, shapeTiles);
+      let result = grid.addShapeSafe(shape, shapeTiles, OUTSIDE_SHAPE_BUFFER);
       if (result) break;
+
       
-      console.log('could not outside add shape');
       tries++;
     }
   }
@@ -199,10 +189,10 @@ function addFakeShapes(grid, startingShapes, groupColor, usedNames) {
 
 const grid = new Grid();
 let lives = 5;
-const livesText = document.getElementById('lives-text');
+const livesText = document.getElementById("lives-text");
 
 function newGame() {
-  console.log('Resetting map');
+  console.log("Resetting map");
   grid.clear();
   lives = 5;
 
@@ -215,11 +205,23 @@ function newGame() {
 
   for (let i = 0; i < START_SHAPE_GROUPS; i++) {
     const groupColor = colors[i];
-    const startingShapes = addStartingShapes(grid, groupColor, usedNames, shapeGroups);
-    addFakeShapes(grid, startingShapes, groupColor, usedNames);
+    const startingShapes = addStartingShapes(
+      grid,
+      groupColor,
+      usedNames,
+      shapeGroups,
+    );
+    
+    addTwinShapes(grid, startingShapes);
     shapeGroups.push(startingShapes);
   }
-  
+
+  for (let i = 0; i < shapeGroups.length; i++) {
+    const groupColor = colors[i];
+    const shapes = shapeGroups[i];
+
+    addFakeShapes(grid, shapes, groupColor, usedNames);
+  }
 }
 
 (async () => {
@@ -230,7 +232,11 @@ function newGame() {
   let screenHeight = Math.min(window.innerHeight, screenWidth / 2);
 
   // Initialize the application
-  await app.init({ width: screenWidth, height: screenHeight, resizeTo: document.getElementById('#app') });
+  await app.init({
+    width: screenWidth,
+    height: screenHeight,
+    resizeTo: document.getElementById("#app"),
+  });
 
   // Append the application canvas to the document body
   document.getElementById("pixi-container").appendChild(app.canvas);
@@ -238,16 +244,15 @@ function newGame() {
   const gridContainer = new Container();
   gridContainer.interactive = true;
   app.stage.addChild(gridContainer);
-  
-  gridContainer.addEventListener('contextmenu', (event) => {
+
+  gridContainer.addEventListener("contextmenu", (event) => {
     event.preventDefault();
   });
 
   const tile_width = screenWidth / grid.width;
   const tile_height = screenWidth / grid.width;
 
-  var shapes = {};
-  var colorIdx = 0
+  let colorIdx = 0;
   for (let col = 0; col < grid.height; col++) {
     for (let row = 0; row < grid.width; row++) {
       const color = TILE_COLORS[colorIdx % TILE_COLORS.length];
@@ -265,7 +270,6 @@ function newGame() {
   let gameTimer = 0;
   // Listen for animate update
   app.ticker.add((time) => {
-
     // Handle window resize
     if (window.innerWidth != screenWidth) {
       screenWidth = window.innerWidth;
@@ -277,10 +281,8 @@ function newGame() {
       });
     }
 
-    
     livesText.innerText = `${HEART.repeat(lives)}`;
 
-    
     if (lives <= 0) {
       grid.lose();
       gameOver = true;
@@ -290,10 +292,9 @@ function newGame() {
       grid.win();
       gameOver = true;
     }
-  
+
     if (gameOver) {
       gameTimer += time.deltaMS;
-      console.log(gameOver);
       if (gameTimer > GAME_OVER_DURATION_MS) {
         gameOver = false;
         gameTimer = 0;
@@ -306,7 +307,7 @@ function newGame() {
   grid.drawPlayArea();
 
   // Add click event for placing shapes
-  gridContainer.on('rightclick', (event) => {
+  gridContainer.on("rightclick", (event) => {
     const mousePos = event.data.global;
     let tile = grid.getTileForScreenPos(mousePos);
     if (tile === null) return;
@@ -316,13 +317,13 @@ function newGame() {
     if (!shape) return;
 
     if (shape.twin_id) {
-      log_msg = `${log_msg} | ${shape.twin_id}`
+      log_msg = `${log_msg} | ${shape.twin_id}`;
     }
 
     console.log(log_msg);
   });
 
-  gridContainer.on('click', (event) => {
+  gridContainer.on("click", (event) => {
     const mousePos = event.data.global;
     if (lives <= 0) return;
 
@@ -338,11 +339,9 @@ function newGame() {
     if (!result) lives = Math.max(0, lives - 1);
   });
 
-
   window.resetMap = () => {
     newGame();
-  }
+  };
 
   newGame();
-
 })();

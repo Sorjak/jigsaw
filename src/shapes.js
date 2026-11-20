@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 const SHAPES = {
   '1': [
     [1],
@@ -63,6 +65,11 @@ const SHAPES = {
     [1, 1],
     [1, 1],
   ],
+  'STAIR': [
+    [1, 0, 0],
+    [1, 1, 0],
+    [0, 1, 1],
+  ]
 }
 
 export default SHAPES;

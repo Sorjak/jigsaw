@@ -2,8 +2,8 @@ import { Container, Graphics, Text } from "pixi.js";
 
 class Tile {
   constructor(x, y, width, height, color) {
-    this.x = x;         // x-coordinate of the tile
-    this.y = y;         // y-coordinate of the tile
+    this.x = x; // x-coordinate of the tile
+    this.y = y; // y-coordinate of the tile
     this.width = width;
     this.height = height;
 
@@ -12,7 +12,7 @@ class Tile {
     this.color = color;
     this.container = new Container();
     this.gtx = new Graphics();
-    this.text = new Text({text: '', style: {}});
+    this.text = new Text({ text: "", style: {} });
 
     this.container.addChild(this.gtx);
     this.container.addChild(this.text);
@@ -21,21 +21,19 @@ class Tile {
   draw() {
     this.gtx.clear();
 
-    this.gtx.rect(
-      this.x * this.width, this.y * this.height,
-      this.width, this.height
-    ).fill(this.color);
+    this.gtx
+      .rect(this.x * this.width, this.y * this.height, this.width, this.height)
+      .fill(this.color);
 
-    this.gtx.rect(      
-      this.x * this.width, this.y * this.height,
-      this.width, this.height
-    ).stroke({width: 1, color: 'black'});
+    this.gtx
+      .rect(this.x * this.width, this.y * this.height, this.width, this.height)
+      .stroke({ width: 1, color: "black" });
   }
 
   setText(newText) {
     this.text.text = newText;
   }
-  
+
   changeColor(newColor) {
     this.color = newColor;
     this.draw();
