@@ -21,9 +21,10 @@ class Tile {
 
   draw() {
     this.gtx.clear();
-    this.gtx.rect(0, 0, 1, 1)
-     .fill(this.color)
-     .stroke({ width: 0.02, color: "black" });
+    this.gtx
+      .rect(0, 0, 1, 1)
+      .fill(this.color)
+      .stroke({ width: 0.02, color: "black" });
 
     // this.gtx
     //   .rect(this.x * this.width, this.y * this.height, this.width, this.height)

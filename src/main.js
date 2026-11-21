@@ -1,5 +1,5 @@
 import "@pixi/layout";
-import { Application, Container, removeItems } from "pixi.js";
+import { Application, Container } from "pixi.js";
 
 import Grid from "./grid.js";
 import {
@@ -110,7 +110,6 @@ function resize(app, gridContainer) {
   if (app.screen.width !== width && app.screen.height !== height) {
     app.renderer.resize(width, height);
   }
-  
 }
 
 (async () => {
@@ -155,7 +154,6 @@ function resize(app, gridContainer) {
   // Listen for animate update
   app.ticker.add((time) => {
     // Handle window resize
-    
 
     livesText.innerText = `${HEART.repeat(lives)}`;
 
@@ -203,7 +201,7 @@ function resize(app, gridContainer) {
     handleInput(event);
   });
 
-  window.addEventListener('resize', () => {
+  window.addEventListener("resize", () => {
     resize(app, gridContainer);
   });
 
