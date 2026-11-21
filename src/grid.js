@@ -95,26 +95,8 @@ class Grid {
     return shapeTiles;
   }
 
-  getTileForScreenPos(screenPos) {
-    const tiles = this.getTileArray();
-
-    for (const tile of tiles) {
-      const left = tile.x * tile.width;
-      const top = tile.y * tile.height;
-      const right = left + tile.width;
-      const bottom = top + tile.height;
-
-      if (
-        screenPos.x >= left &&
-        screenPos.x <= right &&
-        screenPos.y >= top &&
-        screenPos.y <= bottom
-      ) {
-        return tile;
-      }
-    }
-
-    return null;
+  getTileForScreenPos(point) {
+    return this.getTile(Math.floor(point.x), Math.floor(point.y)) ?? null;
   }
 
   drawPlayArea() {

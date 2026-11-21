@@ -1,5 +1,5 @@
 import "@pixi/layout";
-import { Application, Container } from "pixi.js";
+import { Application, Container, Graphics } from "pixi.js";
 
 import Grid from "./grid.js";
 import {
@@ -23,6 +23,7 @@ const GAME_OVER_DURATION_MS = 2000;
 const grid = new Grid();
 let lives = 5;
 const livesText = document.getElementById("lives-text");
+const timerText = document.getElementById("timer-text");
 
 function addStartingShapes(grid, groupColor, usedNames) {
   const shapes = [];
@@ -86,11 +87,12 @@ function newGame() {
   }
 }
 
-function handleInput(event) {
-  const mousePos = event.data.global;
+function handleInput(event, gridContainer) {
   if (lives <= 0) return;
+  const mousePos = event.data.global;
+  const point = gridContainer.toLocal(mousePos);
 
-  let tile = grid.getTileForScreenPos(mousePos);
+  let tile = grid.getTileForScreenPos(point);
   if (tile === null) return;
   if (grid.inPlayArea(tile)) return;
   if (tile.shape_id === null) return;
@@ -102,12 +104,27 @@ function handleInput(event) {
   if (!result) lives = Math.max(0, lives - 1);
 }
 
-function resize(app, gridContainer) {
+function drawGridLines(lines, grid, tileSize) {
+  const half = 0.5 / tileSize; // half a screen pixel, in local units
+
+  lines.clear();
+  for (let x = 0; x <= grid.width; x++) {
+    lines.rect(x - half, 0, 2 * half, grid.height);
+  }
+  for (let y = 0; y <= grid.height; y++) {
+    lines.rect(0, y - half, grid.width, 2 * half);
+  }
+  lines.fill({ color: 0x000000 });
+}
+
+function resize(app, gridContainer, gridLines) {
   const width = window.innerWidth;
   const height = Math.min(window.innerHeight, width / 2);
-  gridContainer.scale.set(width / grid.width);
 
-  if (app.screen.width !== width && app.screen.height !== height) {
+  gridContainer.scale.set(width / grid.width);
+  drawGridLines(gridLines, grid, gridContainer.scale.x);
+
+  if (app.screen.width !== width || app.screen.height !== height) {
     app.renderer.resize(width, height);
   }
 }
@@ -130,7 +147,6 @@ function resize(app, gridContainer) {
 
   const gridContainer = new Container();
   gridContainer.interactive = true;
-  app.stage.addChild(gridContainer);
 
   gridContainer.addEventListener("contextmenu", (event) => {
     event.preventDefault();
@@ -149,29 +165,44 @@ function resize(app, gridContainer) {
     }
   }
 
+  const gridLines = new Graphics();
+  gridContainer.addChild(gridLines);
+
+  app.stage.addChild(gridContainer);
+
   let gameOver = false;
+  let gameOverTimer = 0;
   let gameTimer = 0;
+  let gameStart = Math.floor(Date.now() / 1000);
   // Listen for animate update
   app.ticker.add((time) => {
     // Handle window resize
 
     livesText.innerText = `${HEART.repeat(lives)}`;
+    timerText.innerText = `${20 - gameTimer}s`
 
-    if (lives <= 0) {
-      grid.lose();
-      gameOver = true;
+    const now = Math.floor(Date.now() / 1000); 
+    gameTimer = now - gameStart;
+
+    if (!gameOver) {
+      if (grid.playAreaClear()) {
+        grid.win();
+        gameOver = true;
+      }
+
+      if (lives <= 0 || gameTimer >= 20) {
+        grid.lose();
+        gameOver = true;
+      }
     }
 
-    if (grid.playAreaClear()) {
-      grid.win();
-      gameOver = true;
-    }
-
-    if (gameOver) {
-      gameTimer += time.deltaMS;
-      if (gameTimer > GAME_OVER_DURATION_MS) {
+    else {
+      gameOverTimer += time.deltaMS;
+      if (gameOverTimer > GAME_OVER_DURATION_MS) {
         gameOver = false;
+        gameOverTimer = 0;
         gameTimer = 0;
+        gameStart = now;
         newGame();
       }
     }
@@ -183,7 +214,9 @@ function resize(app, gridContainer) {
   // Add click event for placing shapes
   gridContainer.on("rightclick", (event) => {
     const mousePos = event.data.global;
-    let tile = grid.getTileForScreenPos(mousePos);
+    const point = gridContainer.toLocal(mousePos)
+
+    let tile = grid.getTileForScreenPos(point);
     if (tile === null) return;
 
     let log_msg = `${tile.shape_id}`;
@@ -198,11 +231,11 @@ function resize(app, gridContainer) {
   });
 
   gridContainer.on("pointertap", (event) => {
-    handleInput(event);
+    handleInput(event, gridContainer);
   });
 
   window.addEventListener("resize", () => {
-    resize(app, gridContainer);
+    resize(app, gridContainer, gridLines);
   });
 
   window.resetMap = () => {
@@ -210,5 +243,5 @@ function resize(app, gridContainer) {
   };
 
   newGame();
-  resize(app, gridContainer);
+  resize(app, gridContainer, gridLines);
 })();
