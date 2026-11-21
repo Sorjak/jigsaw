@@ -1,8 +1,11 @@
+import { Color } from "pixi.js";
+
 import SHAPES from "./shapes.js";
 import Shape from "./shape.js";
 import FakeShape from "./fake_shape.js";
 
 const TILE_COLORS = ["red", "blue", "yellow", "cyan", "green"];
+const LIGHTEN_AMOUNT = 0.3;
 
 export function getRandomColor() {
   const clrIdx = getRandomInt(0, TILE_COLORS.length);
@@ -48,5 +51,17 @@ export function getRandomInt(min, max) {
 }
 
 export function getNowSeconds() {
-    return Math.floor(Date.now() / 1000); 
+  return Math.floor(Date.now() / 1000);
+}
+
+export function getTextureBackground(color) {
+  const base = new Color(color);
+  const light = new Color([
+    base.red + (1 - base.red) * LIGHTEN_AMOUNT,
+    base.green + (1 - base.green) * LIGHTEN_AMOUNT,
+    base.blue + (1 - base.blue) * LIGHTEN_AMOUNT,
+  ]);
+
+  const hex = light.toHex();
+  return hex;
 }

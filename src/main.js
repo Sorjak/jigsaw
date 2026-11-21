@@ -9,6 +9,11 @@ import {
 } from "./placements.js";
 import Tile from "./tile.js";
 import {
+  assignGroupTextures,
+  loadTileTextures,
+  setTexturesEnabled,
+} from "./textures.js";
+import {
   getNowSeconds,
   getRandomShape,
   getRandomFakeShape,
@@ -27,7 +32,7 @@ const timerText = document.getElementById("timer-text");
 const roundTimeInput = document.getElementById("round-duration");
 const shapeGroupsInput = document.getElementById("shape-groups");
 const shapesPerGroupInput = document.getElementById("shapes-per-group");
-
+const useTexturesInput = document.getElementById("use-textures");
 
 const grid = new Grid();
 let lives = 5;
@@ -82,6 +87,7 @@ function newGame() {
 
   // Determine the colors for the groups;
   const colors = getRandomColorWheel(shapeGroupsNum);
+  assignGroupTextures(colors);
 
   // Keep track of the taken shape names so we don't duplicate shapes.
   const usedNames = new Set();
@@ -105,6 +111,7 @@ function changeSettings() {
   roundDuration = roundTimeInput.value;
   shapeGroupsNum = shapeGroupsInput.value;
   shapesPerGroup = shapesPerGroupInput.value;
+  setTexturesEnabled(useTexturesInput.checked);
 }
 
 function handleInput(event, gridContainer) {
@@ -196,10 +203,9 @@ function resize(app, gridContainer, gridLines) {
   // Listen for animate update
   app.ticker.add((time) => {
     livesText.innerText = `${HEART.repeat(lives)}`;
-    timerText.innerText = `${Math.max(0, roundDuration - gameTimer)}s`
+    timerText.innerText = `${Math.max(0, roundDuration - gameTimer)}s`;
 
     const now = getNowSeconds();
-    
 
     if (!gameOver) {
       gameTimer = now - gameStart;
@@ -212,9 +218,7 @@ function resize(app, gridContainer, gridLines) {
         grid.lose();
         gameOver = true;
       }
-    }
-
-    else {
+    } else {
       gameOverTimer += time.deltaMS;
       if (gameOverTimer > GAME_OVER_DURATION_MS) {
         gameOver = false;
@@ -232,7 +236,7 @@ function resize(app, gridContainer, gridLines) {
   // Add click event for placing shapes
   gridContainer.on("rightclick", (event) => {
     const mousePos = event.data.global;
-    const point = gridContainer.toLocal(mousePos)
+    const point = gridContainer.toLocal(mousePos);
 
     let tile = grid.getTileForScreenPos(point);
     if (tile === null) return;
@@ -263,8 +267,11 @@ function resize(app, gridContainer, gridLines) {
   window.applySettings = () => {
     changeSettings();
     newGame();
-  }
+  };
 
+  await loadTileTextures();
+
+  changeSettings();
   newGame();
   resize(app, gridContainer, gridLines);
 })();
