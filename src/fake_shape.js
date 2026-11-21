@@ -1,20 +1,9 @@
-import SHAPES from "./shapes.js";
+import Shape from "./shape.js";
 
-class FakeShape {
-  constructor(name, color) {
-    this.name = name;
-    this.grid = SHAPES[name];
+class FakeShape extends Shape {
+  constructor(name, color, rotation) {
+    super(name, color, rotation);
     this.id = "fake";
-    this.twin_id = null;
-    this.color = color;
-  }
-
-  get width() {
-    return this.grid[0].length;
-  }
-
-  get height() {
-    return this.grid.length;
   }
 }
 export default FakeShape;
