@@ -9,6 +9,7 @@ import {
 } from "./placements.js";
 import Tile from "./tile.js";
 import {
+  getNowSeconds,
   getRandomShape,
   getRandomFakeShape,
   getRandomColorWheel,
@@ -19,17 +20,28 @@ const START_SHAPE_NUM_PER_GROUP = 3;
 const FAKE_SHAPE_NUM_PER_GROUP = 2;
 const HEART = "❤️";
 const GAME_OVER_DURATION_MS = 2000;
+const ROUND_DURATION_SECONDS = 20;
+
+const livesText = document.getElementById("lives-text");
+const timerText = document.getElementById("timer-text");
+const roundTimeInput = document.getElementById("round-duration");
+const shapeGroupsInput = document.getElementById("shape-groups");
+const shapesPerGroupInput = document.getElementById("shapes-per-group");
+
 
 const grid = new Grid();
 let lives = 5;
-const livesText = document.getElementById("lives-text");
-const timerText = document.getElementById("timer-text");
+let gameTimer = 0;
+let gameStart = getNowSeconds();
+let roundDuration = ROUND_DURATION_SECONDS;
+let shapeGroupsNum = START_SHAPE_GROUPS;
+let shapesPerGroup = START_SHAPE_NUM_PER_GROUP;
 
 function addStartingShapes(grid, groupColor, usedNames) {
   const shapes = [];
   const groupNames = new Set(usedNames);
 
-  for (let i = 0; i < START_SHAPE_NUM_PER_GROUP; i++) {
+  for (let i = 0; i < shapesPerGroup; i++) {
     const shape = getRandomShape(groupColor, groupNames);
     if (shape === null) break;
     shapes.push(shape);
@@ -65,15 +77,17 @@ function newGame() {
   console.log("Resetting map");
   grid.clear();
   lives = 5;
+  gameTimer = 0;
+  gameStart = getNowSeconds();
 
   // Determine the colors for the groups;
-  const colors = getRandomColorWheel(START_SHAPE_GROUPS);
+  const colors = getRandomColorWheel(shapeGroupsNum);
 
   // Keep track of the taken shape names so we don't duplicate shapes.
   const usedNames = new Set();
   const shapeGroups = [];
 
-  for (let i = 0; i < START_SHAPE_GROUPS; i++) {
+  for (let i = 0; i < shapeGroupsNum; i++) {
     const groupColor = colors[i];
     const startingShapes = addStartingShapes(grid, groupColor, usedNames);
 
@@ -85,6 +99,12 @@ function newGame() {
     const groupColor = colors[i];
     addFakeShapes(grid, groupColor, usedNames);
   }
+}
+
+function changeSettings() {
+  roundDuration = roundTimeInput.value;
+  shapeGroupsNum = shapeGroupsInput.value;
+  shapesPerGroup = shapesPerGroupInput.value;
 }
 
 function handleInput(event, gridContainer) {
@@ -172,25 +192,23 @@ function resize(app, gridContainer, gridLines) {
 
   let gameOver = false;
   let gameOverTimer = 0;
-  let gameTimer = 0;
-  let gameStart = Math.floor(Date.now() / 1000);
+
   // Listen for animate update
   app.ticker.add((time) => {
-    // Handle window resize
-
     livesText.innerText = `${HEART.repeat(lives)}`;
-    timerText.innerText = `${20 - gameTimer}s`
+    timerText.innerText = `${Math.max(0, roundDuration - gameTimer)}s`
 
-    const now = Math.floor(Date.now() / 1000); 
-    gameTimer = now - gameStart;
+    const now = getNowSeconds();
+    
 
     if (!gameOver) {
+      gameTimer = now - gameStart;
       if (grid.playAreaClear()) {
         grid.win();
         gameOver = true;
       }
 
-      if (lives <= 0 || gameTimer >= 20) {
+      if (lives <= 0 || gameTimer >= roundDuration) {
         grid.lose();
         gameOver = true;
       }
@@ -241,6 +259,11 @@ function resize(app, gridContainer, gridLines) {
   window.resetMap = () => {
     newGame();
   };
+
+  window.applySettings = () => {
+    changeSettings();
+    newGame();
+  }
 
   newGame();
   resize(app, gridContainer, gridLines);

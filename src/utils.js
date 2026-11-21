@@ -46,3 +46,7 @@ export function getRandomInt(min, max) {
   max = Math.floor(max);
   return Math.floor(Math.random() * (max - min)) + min;
 }
+
+export function getNowSeconds() {
+    return Math.floor(Date.now() / 1000); 
+}

@@ -19,27 +19,63 @@
             margin-bottom: 10px;
         }
 
-        #controls {
+        .jigsaw-section {
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             align-items: center;
-        }
-
-        #controls > * {
-            margin-right: 10px;
             margin-bottom: 10px;
         }
+
+        #controls {
+            flex-direction: row;
+            gap: 10px;
+        }
+
+        #settings {
+            flex-direction: row;
+            gap: 10px;
+        }
+
+        #info span {
+            margin-bottom: 10px;
+        }
+
+        .jigsaw-setting {
+            display: flex;
+            gap: 10px;
+        }
+        .jigsaw-setting input {
+            width: 40px;
+        }
+
     </style>
 </head>
 
 <body>
     <div id="app">
         <div id="pixi-container"></div>
-        <div id="controls">
+        <div id="info" class="jigsaw-section">
             <span id="lives-text">Lives Remaining: 5</span>
             <span id="timer-text">20s</span>
+        </div>
+        <div id="settings" class="jigsaw-section">
+            <div class="jigsaw-setting">
+                <span>Round Duration</span>
+                <input id="round-duration" value="20" placeholder="20" type="number" min="0" max="100" />
+            </div>
+            <div class="jigsaw-setting">
+                <span>Shape Groups</span>
+                <input id="shape-groups" value="3" placeholder="3" type="number" min="0" max="10" />
+            </div>
+            <div class="jigsaw-setting">
+                <span>Shapes per Group</span>
+                <input id="shapes-per-group" value="3" placeholder="3" type="number" min="0" max="10" />
+            </div>
+        </div>
+        <div id="controls" class="jigsaw-section">
             <button id="reset-button" onclick="resetMap()">Reset</button>
+            <button id="apply-settings" onclick="applySettings()">Apply</button>
         </div>
     </div>
     <script type="module" src="/src/main.js"></script>
