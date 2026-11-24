@@ -19,6 +19,7 @@ import {
   getRandomFakeShape,
   getRandomColorWheel,
 } from "./utils.js";
+import Viewport from "./viewport.js";
 
 const START_SHAPE_GROUPS = 3;
 const START_SHAPE_NUM_PER_GROUP = 3;
@@ -144,33 +145,21 @@ function drawGridLines(lines, grid, tileSize) {
   lines.fill({ color: 0x000000 });
 }
 
-function resize(app, gridContainer, gridLines) {
-  const width = window.innerWidth;
-  const height = Math.min(window.innerHeight, width / 2);
-
-  gridContainer.scale.set(width / grid.width);
-  drawGridLines(gridLines, grid, gridContainer.scale.x);
-
-  if (app.screen.width !== width || app.screen.height !== height) {
-    app.renderer.resize(width, height);
-  }
-}
-
 (async () => {
   // Create a new application
   const app = new Application();
 
-  let screenWidth = window.innerWidth;
-  let screenHeight = Math.min(window.innerHeight, screenWidth / 2);
-
-  // Initialize the application
+  // Initialize the application with a placeholder, resize will fix it.
   await app.init({
-    width: screenWidth,
-    height: screenHeight,
+    width: 1,
+    height: 1,
+    resolution: Math.min(window.devicePixelRatio || 1, 2),
+    autoDensity: true,
   });
 
   // Append the application canvas to the document body
-  document.getElementById("pixi-container").appendChild(app.canvas);
+  const pixiContainer = document.getElementById("pixi-container");
+  pixiContainer.appendChild(app.canvas);
 
   const gridContainer = new Container();
   gridContainer.interactive = true;
@@ -179,12 +168,9 @@ function resize(app, gridContainer, gridLines) {
     event.preventDefault();
   });
 
-  const tile_width = screenWidth / grid.width;
-  const tile_height = screenWidth / grid.width;
-
   for (let col = 0; col < grid.height; col++) {
     for (let row = 0; row < grid.width; row++) {
-      const tile = new Tile(row, col, tile_width, tile_height, "black");
+      const tile = new Tile(row, col, "black");
       tile.draw();
       gridContainer.addChild(tile.container);
 
@@ -197,13 +183,26 @@ function resize(app, gridContainer, gridLines) {
 
   app.stage.addChild(gridContainer);
 
+  // Create viewport class to manage window sizing.
+  const viewport = new Viewport({
+    container: pixiContainer,
+    pixiApp: app,
+    content: gridContainer,
+    gridSize: { width: grid.width, height: grid.height },
+    onResize: (scale) => drawGridLines(gridLines, grid, scale),
+  });
+  viewport.start();
+
   let gameOver = false;
   let gameOverTimer = 0;
 
   // Listen for animate update
   app.ticker.add((time) => {
-    livesText.innerText = `${HEART.repeat(lives)}`;
-    timerText.innerText = `${Math.max(0, roundDuration - gameTimer)}s`;
+    const livesStr = HEART.repeat(lives);
+    if (livesText.textContent !== livesStr) livesText.textContent = livesStr;
+
+    const timerStr = `${Math.max(0, roundDuration - gameTimer)}s`;
+    if (timerText.textContent !== timerStr) timerText.textContent = timerStr;
 
     const now = getNowSeconds();
 
@@ -256,10 +255,6 @@ function resize(app, gridContainer, gridLines) {
     handleInput(event, gridContainer);
   });
 
-  window.addEventListener("resize", () => {
-    resize(app, gridContainer, gridLines);
-  });
-
   window.resetMap = () => {
     newGame();
   };
@@ -273,5 +268,4 @@ function resize(app, gridContainer, gridLines) {
 
   changeSettings();
   newGame();
-  resize(app, gridContainer, gridLines);
 })();

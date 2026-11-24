@@ -3,11 +3,9 @@ import { getTileTexture } from "./textures.js";
 import { getTextureBackground } from "./utils.js";
 
 class Tile {
-  constructor(x, y, width, height, color) {
+  constructor(x, y, color) {
     this.x = x; // x-coordinate of the tile
     this.y = y; // y-coordinate of the tile
-    this.width = width;
-    this.height = height;
 
     this.shape_id = null;
 
